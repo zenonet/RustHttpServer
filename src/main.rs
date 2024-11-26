@@ -5,7 +5,7 @@ use std::io::prelude::*;
 
 fn main() {
     println!("Hello, world!");
-    let listener = TcpListener::bind(SocketAddr::new(IpAddr::from([127, 0, 0, 1]), 6969)).unwrap();
+    let listener = TcpListener::bind(SocketAddr::new(IpAddr::from([0, 0, 0, 0]), 80)).unwrap();
 
     let mut counter = 0;
     loop {
@@ -16,12 +16,15 @@ fn main() {
             let mut input_stream = BufReader::new(&sock_stream);
             let mut output_stream = BufWriter::new(&sock_stream);
 
-            let yeet = input_stream.fill_buf().unwrap();
-            /*
-            let mut request = String::new();
-            input_stream.read_to_string(&mut request).unwrap();*/
+            let fill_res = input_stream.fill_buf();
+            if fill_res.is_err(){
+                println!("Failed to read request data, aborting request");
+                continue
+            }
 
-            println!("got new client and data: {}", String::from_utf8_lossy(yeet));
+            let request = String::from_utf8_lossy(fill_res.unwrap());
+
+            println!("got new client and data: {}", request);
 
             let content = format!("Asbest!\nAlso, you're the {counter}th visitor");
             counter += 1;
