@@ -57,7 +57,7 @@ fn main() {
             } else {
                 &*format!("A previous visitor left a message here for you:\n\
                         {message}\n\n\
-                        You can send a message to the next visitor by sending a request like this: https://lx.zenonet.de:8874/msg/YourMessageHere\n\
+                        You can send a message to the next visitor by sending a request like this: http://lx.zenonet.de:8874/msg/YourMessageHere\n\
                         If you send one, pls be nice\n\
                         If you do this I will (obviously) memorize your message and I'll take a hashcode of your ip address and keep it in memory until the next visitor writes a message")
             };
@@ -65,7 +65,6 @@ fn main() {
             let counter_as_string = counter.to_ordinal_number();
             let content = format!("Hi there!\n\
                         This is my little http server written in Rust.\n\
-                        I am feeding it through a reverse proxy for SSL though\
                         \n\n\
                         {inner_content}\n\n\
                         Also, you're the {counter_as_string} visitor (or atleast this is the {counter_as_string} request since I started the server)");
