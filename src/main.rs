@@ -37,10 +37,14 @@ fn main() {
                     if let Some(end) = path[5..].find(' ') {
                         let msg = String::from(&path[5..end + 5]);
                         if msg.len() > 0 {
-                            message = msg;
-                            println!("Got new message: '{message}'");
-                            let _ = msg_log.write(format!("{message}\n").as_bytes());
-                            did_msg_change = true;
+                            if validate_msg(&*msg) {
+                                message = msg;
+                                println!("Got new message: '{message}'");
+                                let _ = msg_log.write(format!("{message}\n").as_bytes());
+                                did_msg_change = true;
+                            }else{
+                                println!("Slur filter blocked message: '{msg}'")
+                            }
                         }
                     }
                 }
@@ -76,6 +80,18 @@ fn main() {
             );
         }
     }
+}
+
+fn validate_msg(msg: &str) -> bool {
+    let file = File::open("msg_blacklist.txt").unwrap();
+
+    for slur in BufReader::new(file).lines() {
+        if slur.is_ok() && msg.contains(&slur.unwrap()){
+            return false;
+        }
+    }
+
+    !msg.contains('.') && !msg.starts_with("http") && !msg.contains("www") && !msg.contains("@")
 }
 
 trait NumberFormatting {
