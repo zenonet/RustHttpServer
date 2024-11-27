@@ -1,4 +1,4 @@
-﻿FROM rust:1.67
+﻿FROM rust:latest
 EXPOSE 80
 
 WORKDIR /usr/src/myapp
