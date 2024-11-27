@@ -1,8 +1,7 @@
-use std::fmt::format;
+use std::fs::File;
 use std::io::{BufReader, BufWriter};
 use std::net::{IpAddr, Shutdown, SocketAddr, SocketAddrV4, TcpListener, ToSocketAddrs};
 use std::io::prelude::*;
-use std::ops::Index;
 
 fn main() {
     println!("Hello, world!");
@@ -10,41 +9,46 @@ fn main() {
 
     let mut message:String = String::from("Nobody has sent a message yet :(");
     let mut counter = 0;
+    let mut msg_log = File::create("msglog.txt").unwrap();
     loop {
-        let (mut sock_stream, client_addr) = listener.accept().expect("TODO: panic message");
+        let (sock_stream, client_addr) = listener.accept().expect("TODO: panic message");
         {
             let start = std::time::Instant::now();
 
             let mut input_stream = BufReader::new(&sock_stream);
             let mut output_stream = BufWriter::new(&sock_stream);
 
-            let fill_res = input_stream.fill_buf();
-            if fill_res.is_err(){
+            let Ok(fill_res) = input_stream.fill_buf() else
+            {
                 println!("Failed to read request data, aborting request");
                 continue
-            }
+            };
 
-            let request = String::from_utf8_lossy(fill_res.unwrap());
-            let mut status_line = request.lines().next().unwrap();
-
+            let request = String::from_utf8_lossy(fill_res);
+            let Some(status_line) = request.lines().next() else {
+                println!("Failed to read request data, aborting request");
+                continue
+            };
 
             let mut did_msg_change = false;
-            let maybe_slash_index = status_line.find('/');
-            if maybe_slash_index.is_none()
-            {
-                continue
-            }
-            let path = &status_line[maybe_slash_index.unwrap()..];
-            if path.starts_with("/msg/") {
-                let end = path[5..].find(' ').unwrap();
-                message = String::from(&path[5..end+5]);
-                println!("Got new message: '{message}'");
-                did_msg_change = true;
+            if let Some(slash_index) = status_line.find('/'){
+                let path = &status_line[slash_index..];
+                if path.starts_with("/msg/") {
+                    if let Some(end) = path[5..].find(' '){
+                        let msg = String::from(&path[5..end+5]);
+                        if msg.len() > 0 {
+                            message = msg;
+                            println!("Got new message: '{message}'");
+                            let _ = msg_log.write(format!("{message}\n").as_bytes());
+                            did_msg_change = true;
+                        }
+                    }
+                }
             }
 
             println!("got new client and data: {}", request);
 
-            let inner_content = if(did_msg_change){
+            let inner_content = if did_msg_change{
                 "Thanks for leaving a message!"
             }else{
                 &*format!("A previous visitor left a message here for you:\n\
@@ -64,7 +68,7 @@ fn main() {
             counter += 1;
 
             let content_length = content.len()+1;
-            output_stream.write(format!("HTTP/1.0 200 OK\nContent-Length:{content_length}Content-Type: text/plain\n\n{content}\n").as_bytes()).unwrap();
+            let _ = output_stream.write(format!("HTTP/1.0 200 OK\nContent-Length:{content_length}Content-Type: text/plain\n\n{content}\n").as_bytes());
             /*        output_stream.write("HTTP/1.0 200 OK\n".as_bytes()).unwrap();
                     output_stream.write("Content-Type: text/plain\n\n".as_bytes()).unwrap();
                     output_stream.write("Yeah\n".as_bytes()).unwrap();*/
